@@ -118,3 +118,7 @@ Resources:
           Value: 'Laurent Huron'
         - Key: CreatedBy
           Value: BCG213
+  yml:AWS::S3::Bucket:
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: True
