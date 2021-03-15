@@ -1,0 +1,120 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'VPC: NAT Gateway, a cloudonaut.io template'
+
+Parameters:
+  MyVpc:
+    Description: 'VPC Id'
+    Type: AWS::EC2::VPC::Id
+  MyCidrBlock:
+    Description: 'CIDR block of the VPC'
+    Type: String
+    Default: 10.154.69.80/28
+    AllowedPattern: '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$'
+  SubnetZone:
+    Description: 'Subnet zone.'
+    Type: String
+    Default: 'eu-west-1'
+    AllowedValues:
+    - 'eu-west-1'
+    - 'eu-west-2'
+    - 'eu-west-3'
+
+Resources:
+  EIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+
+  MyNatGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: 'alloc-1234'
+      SubnetId: 'sn-1234'
+
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: kwibucket
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Owner
+          Value: Kristof
+        - Key: Application
+          Value: Someapp
+        - Key: CreatedBy
+          Value: BCG213-A
+
+  MySubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref SubnetZone
+      CidrBlock: !Ref MyCidrBlock
+      VpcId: !Ref MyVpc
+      Tags:
+        - Key: CreatedBy
+          Value: BCG213-A
+
+  FWNACL:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      Tags:
+        - Key: Name
+          Value: FWhaNACL
+        - Key: Application
+          Value: AudioCode
+        - Key: Account
+          Value: 'EIT Prod'
+        - Key: Owner
+          Value: 'Laurent Huron'
+        - Key: CreatedBy
+          Value: BCG213
+      VpcId: vpc1234
+
+  NACLFWInboundRule:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      CidrBlock: !Ref MyCidrBlock
+      PortRange:
+        From: -1
+        To: -1
+      Egress: False
+      NetworkAclId: !Ref FWNACL
+      Protocol: -1
+      RuleAction: allow
+      RuleNumber: 100
+
+  NACLsubnetAssoc:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !Ref MySubnet
+      NetworkAclId: !Ref FWNACL
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: sg_alb
+      GroupDescription: ALB security group
+      VpcId: !Ref MyVpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref MyCidrBlock
+      Tags:
+        - Key: Application
+          Value: MyApp
+        - Key: Account
+          Value: 'EIT Prod'
+        - Key: Owner
+          Value: 'Laurent Huron'
+        - Key: CreatedBy
+          Value: BCG213
