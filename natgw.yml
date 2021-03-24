@@ -122,3 +122,5 @@ Resources:
     Properties:
       PublicAccessBlockConfiguration:
         BlockPublicPolicy: True
+      VersioningConfiguration:
+        Status: Enabled
